@@ -22,12 +22,11 @@ export class PgConnection {
       if (!toRegclass) {
         await this.#connection.query(`
         CREATE TABLE IF NOT EXISTS _request_datalog (
-            user_id NUMERIC NOT NULL,
-            internal_user_id NUMERIC,
+            token_data JSONB,
             request_url JSONB,
-            request_data JSONB,F
+            request_data JSONB,
             response_data JSONB,
-            execution_time NUMERIC
+            execution_time NUMERIC,
             timestamp TIMESTAMP NOT NULL DEFAULT NOW()
         )`);
       }
@@ -48,15 +47,13 @@ export class PgConnection {
 
     return `
         INSERT INTO _request_datalog (
-        user_id,
-        internal_user_id,
+        token_data,
         request_url,
         request_data,
         response_data,
         execution_time
         ) VALUES (
-        ${tokenData.userId},
-        ${tokenData.internalUserId},
+        '${tokenData}',
         '${data.requestUrl}',
         '${data.requestData}',
         '${data.responseData}',
