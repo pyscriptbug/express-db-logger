@@ -36,7 +36,7 @@ export const applyLoggerMiddleware = ({
 
     res.end = (chunk, ...args: any) => {
       if (chunk) chunks.push(chunk);
-      const responseBody = Buffer.concat(chunks).toString('utf8');
+      const responseBody = JSON.parse(Buffer.concat(chunks).toString('utf8'));
 
       connection.logRequest({
         token,

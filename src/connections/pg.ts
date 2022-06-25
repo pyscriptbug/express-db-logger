@@ -45,6 +45,8 @@ export class PgConnection {
   #buildLogQuery(data: LogRequest) {
     const tokenData = parseJwt(data.token);
 
+    console.log(tokenData, data);
+
     return `
         INSERT INTO _request_datalog (
         token_data,
