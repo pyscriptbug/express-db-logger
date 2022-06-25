@@ -16,11 +16,10 @@ export class PgConnection {
     this.#connection = await this.#pool.connect();
 
     try {
-      const {
-        rows: [to_regclass],
-      } = await this.#connection.query("SELECT to_regclass('public._request_datalog')");
+      const { rows } = await this.#connection.query("SELECT to_regclass('public._request_datalog')");
+      const toRegclass = rows[0].to_regclass;
 
-      if (!to_regclass) {
+      if (!toRegclass) {
         await this.#connection.query(`
         CREATE TABLE IF NOT EXISTS _request_datalog (
             user_id NUMERIC NOT NULL,
@@ -36,7 +35,12 @@ export class PgConnection {
       console.error(e);
     }
 
-    this.#connection.release();
+    this.#closeConnection();
+  }
+
+  #closeConnection() {
+    this.#connection?.release();
+    this.#connection = undefined;
   }
 
   #buildLogQuery(data: LogRequest) {
@@ -61,14 +65,10 @@ export class PgConnection {
   }
 
   public async logRequest(data: LogRequest) {
-    this.#connection = await this.#pool.connect();
-
     try {
-      await this.#connection.query(this.#buildLogQuery(data));
+      await this.#pool.query(this.#buildLogQuery(data));
     } catch (e) {
       console.error(e);
     }
-
-    this.#connection.release();
   }
 }
