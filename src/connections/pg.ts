@@ -53,10 +53,10 @@ export class PgConnection {
         response_data,
         execution_time
         ) VALUES (
-        '${tokenData}',
+        '${JSON.stringify(tokenData)}',
         '${data.requestUrl}',
-        '${data.requestData}',
-        '${data.responseData}',
+        '${JSON.stringify(data.requestData)}',
+        '${JSON.stringify(data.responseData)}',
         ${data.executionTime}
         )`;
   }
