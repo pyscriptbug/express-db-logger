@@ -1,12 +1,14 @@
 {
-    "compilerOptions": {
-      "target": "es6",
-      "module": "commonjs",
-      "declaration": true,
-      "outDir": "./lib",
-      "lib": ["es2017"],
-      "strict": true
-    },
-    "include": ["src"],
-    "exclude": ["node_modules", "**/__tests__/*"]
-  }
+  "compilerOptions": {
+    "target": "es6",
+    "module": "commonjs",
+    "declaration": true,
+    "outDir": "./lib",
+    "lib": ["es2017"],
+    "strict": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "**/__tests__/*"]
+}

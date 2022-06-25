@@ -1,4 +1,6 @@
 import { Pool, PoolClient, PoolConfig } from 'pg';
+import { LogRequest } from '../types/log-request';
+import { parseJwt } from '../utils/jwt';
 
 export class PgConnection {
   #pool: Pool;
@@ -9,20 +11,64 @@ export class PgConnection {
     this.#verifyConnection();
   }
 
+  /** Verifies and creates the required tables if required */
   async #verifyConnection() {
-    this.#openConnection();
-    this.#connection?.query("SELECT to_regclass('public.entdatalog')");
-    this.#closeConnection();
-  }
+    this.#connection = await this.#pool.connect();
 
-  async #openConnection() {
-    if (!this.#connection) this.#connection = await this.#pool.connect();
-  }
+    try {
+      const {
+        rows: [to_regclass],
+      } = await this.#connection.query("SELECT to_regclass('public._request_datalog')");
 
-  async #closeConnection(err?: boolean | Error) {
-    if (this.#connection) {
-      this.#connection.release(err);
-      this.#connection = undefined;
+      if (!to_regclass) {
+        await this.#connection.query(`
+        CREATE TABLE IF NOT EXISTS _request_datalog (
+            user_id NUMERIC NOT NULL,
+            internal_user_id NUMERIC,
+            request_url JSONB,
+            request_data JSONB,F
+            response_data JSONB,
+            execution_time NUMERIC
+            timestamp TIMESTAMP NOT NULL DEFAULT NOW()
+        )`);
+      }
+    } catch (e) {
+      console.error(e);
     }
+
+    this.#connection.release();
+  }
+
+  #buildLogQuery(data: LogRequest) {
+    const tokenData = parseJwt(data.token);
+
+    return `
+        INSERT INTO _request_datalog (
+        user_id,
+        internal_user_id,
+        request_url,
+        request_data,
+        response_data,
+        execution_time
+        ) VALUES (
+        ${tokenData.userId},
+        ${tokenData.internalUserId},
+        '${data.requestUrl}',
+        '${data.requestData}',
+        '${data.responseData}',
+        ${data.executionTime}
+        )`;
+  }
+
+  public async logRequest(data: LogRequest) {
+    this.#connection = await this.#pool.connect();
+
+    try {
+      await this.#connection.query(this.#buildLogQuery(data));
+    } catch (e) {
+      console.error(e);
+    }
+
+    this.#connection.release();
   }
 }
