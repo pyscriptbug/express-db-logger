@@ -17,8 +17,6 @@ export const applyLoggerMiddleware = ({
 }: InitializeLogger = DEFAULT_INITIALIZE_OPTIONS) => {
   const connection = new ConnectionMapper[connectionType]({ connectionString });
 
-  console.log(connection);
-
   return (req: Request, res: Response, next: NextFunction) => {
     const { write, end } = res;
     const {
