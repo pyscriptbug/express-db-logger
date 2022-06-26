@@ -8,7 +8,7 @@ const ConnectionMapper = {
 
 const DEFAULT_INITIALIZE_OPTIONS: InitializeLogger = {
   connectionType: 'postgres',
-  connectionString: process.env.LOGGER_CONNECTION_STRING,
+  connectionString: process.env.DATABASE_URL,
 };
 
 export const applyLoggerMiddleware = ({

@@ -1,6 +1,10 @@
 import { Pool, PoolClient, PoolConfig } from 'pg';
 import { LogRequest } from '../types/log-request';
 import { parseJwt } from '../utils/jwt';
+import { sanitizeData } from '../utils/query';
+
+const SCHEMA_NAME = 'datalogger';
+const REQUEST_LOG_TABLE = '_request_datalog';
 
 export class PgConnection {
   #pool: Pool;
@@ -16,14 +20,28 @@ export class PgConnection {
     this.#connection = await this.#pool.connect();
 
     try {
-      const { rows } = await this.#connection.query("SELECT to_regclass('public._request_datalog')");
+      await this.#connection.query(`
+      DO $$
+      BEGIN
+          IF NOT EXISTS(
+              SELECT schema_name
+                FROM information_schema.schemata
+                WHERE schema_name = '${SCHEMA_NAME}'
+            )
+          THEN
+            EXECUTE 'CREATE SCHEMA ${SCHEMA_NAME}';
+          END IF;
+      END
+      $$;`);
+
+      const { rows } = await this.#connection.query(`SELECT to_regclass('${SCHEMA_NAME}.${REQUEST_LOG_TABLE}')`);
       const toRegclass = rows[0].to_regclass;
 
       if (!toRegclass) {
         await this.#connection.query(`
-        CREATE TABLE IF NOT EXISTS _request_datalog (
+        CREATE TABLE IF NOT EXISTS ${SCHEMA_NAME}.${REQUEST_LOG_TABLE} (
             token_data JSONB,
-            request_url JSONB,
+            request_url VARCHAR(255),
             request_data JSONB,
             response_data JSONB,
             execution_time NUMERIC,
@@ -45,27 +63,26 @@ export class PgConnection {
   #buildLogQuery(data: LogRequest) {
     const tokenData = parseJwt(data.token);
 
-    console.log(tokenData, data);
-
     return `
-        INSERT INTO _request_datalog (
+        INSERT INTO ${SCHEMA_NAME}.${REQUEST_LOG_TABLE} (
         token_data,
         request_url,
         request_data,
         response_data,
         execution_time
         ) VALUES (
-        '${JSON.stringify(tokenData)}',
+        '${sanitizeData(tokenData)}',
         '${data.requestUrl}',
-        '${JSON.stringify(data.requestData)}',
-        '${JSON.stringify(data.responseData)}',
+        '${sanitizeData(data.requestData)}',
+        '${sanitizeData(data.responseData)}',
         ${data.executionTime}
         )`;
   }
 
   public async logRequest(data: LogRequest) {
+    const query = this.#buildLogQuery(data);
     try {
-      await this.#pool.query(this.#buildLogQuery(data));
+      await this.#pool.query(query);
     } catch (e) {
       console.error(e);
     }
