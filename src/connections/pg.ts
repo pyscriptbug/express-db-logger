@@ -40,12 +40,12 @@ export class PgConnection {
       if (!toRegclass) {
         await this.#connection.query(`
         CREATE TABLE IF NOT EXISTS ${SCHEMA_NAME}.${REQUEST_LOG_TABLE} (
-            token_data JSONB,
             request_url VARCHAR(255),
+            token_data JSONB,
             request_data JSONB,
             response_data JSONB,
-            execution_time NUMERIC,
-            timestamp TIMESTAMP NOT NULL DEFAULT NOW()
+            timestamp TIMESTAMP NOT NULL DEFAULT NOW(),
+            execution_time NUMERIC
         )`);
       }
     } catch (e) {
@@ -65,14 +65,14 @@ export class PgConnection {
 
     return `
         INSERT INTO ${SCHEMA_NAME}.${REQUEST_LOG_TABLE} (
-        token_data,
         request_url,
+        token_data,
         request_data,
         response_data,
         execution_time
         ) VALUES (
-        '${sanitizeData(tokenData)}',
         '${data.requestUrl}',
+        '${sanitizeData(tokenData)}',
         '${sanitizeData(data.requestData)}',
         '${sanitizeData(data.responseData)}',
         ${data.executionTime}
